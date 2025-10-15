@@ -167,5 +167,3 @@ This notebook demonstrates a **data-driven approach to understanding swing behav
 By combining model calibration, probabilistic interpretation, and explainable AI, it provides actionable insights that can inform both **coaching decisions** and **player development** strategies.
 
 ---
-
-> “Whether you think you can or think you can't, either way you are right.” — *Henry Ford*
