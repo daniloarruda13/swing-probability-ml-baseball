@@ -17,18 +17,24 @@ Understanding swing behavior is valuable for:
 - **Sports scientists**, to study decision-making and motor behavior under time constraints.
 
 ---
-
 ## 📂 Table of Contents
-1. [Project and Data Description](#project-and-data-description)  
-2. [Data Preparation](#data-preparation)  
-3. [Modeling](#modeling)  
-4. [Model Calibration](#model-calibration)  
-5. [Model Diagnostics](#model-diagnostics)  
-6. [Predicting Swing Probability for Year 3](#predicting-swing-probability-for-year-3)  
-7. [Feature Exploration](#feature-exploration)  
-8. [How to Run the Notebook](#how-to-run-the-notebook)  
-9. [Dependencies](#dependencies)  
-10. [Author](#author)
+- [⚾ Swing Probability in Baseball](#-swing-probability-in-baseball)
+  - [📘 Project Overview](#-project-overview)
+  - [🧠 Motivation](#-motivation)
+  - [📂 Table of Contents](#-table-of-contents)
+  - [⚙️ Project and Data Description](#️-project-and-data-description)
+  - [🧹 Data Preparation](#-data-preparation)
+  - [🤖 Modeling](#-modeling)
+  - [🔧 Model Calibration](#-model-calibration)
+  - [📊 Model Diagnostics](#-model-diagnostics)
+  - [🧩 Predicting Swing Probability for Year 3](#-predicting-swing-probability-for-year-3)
+  - [🔍 Feature Exploration](#-feature-exploration)
+    - [SHAP Beeswarm Plot](#shap-beeswarm-plot)
+    - [SHAP Dependence Plots](#shap-dependence-plots)
+  - [▶️ How to Run the Notebook](#️-how-to-run-the-notebook)
+  - [📦 Dependencies](#-dependencies)
+  - [👨‍🔬 Author](#-author)
+  - [🏁 Summary](#-summary)
 
 ---
 
@@ -115,7 +121,7 @@ These insights can guide **coaching strategies**, highlighting how pitch type, s
 ## ▶️ How to Run the Notebook
 1. Clone this repository:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/swing-probability-baseball.git
+   git clone https://https://github.com/daniloarruda13/swing-probability-ml-baseball
    cd swing-probability-baseball
    ```
 2. Install dependencies:
@@ -149,10 +155,10 @@ Make sure your environment supports **Python ≥ 3.9**.
 
 ## 👨‍🔬 Author
 **Danilo Arruda, PhD**  
-- Exercise Science researcher specializing in **motor behavior** and **performance analytics**.  
+- Movement Scientist.  
 - Experienced in **data analysis**, **machine learning**, and **sports biomechanics**.  
 
-📫 [LinkedIn](https://www.linkedin.com/in/danilo-arruda/) • [Google Scholar](https://scholar.google.com/citations?user=On_20uoAAAAJ&hl=en)
+📫 [LinkedIn](https://www.linkedin.com/in/danilo-arruda-phd-b0325b24a/) • [Google Scholar](https://scholar.google.com/citations?user=On_20uoAAAAJ&hl=en)
 
 ---
 
