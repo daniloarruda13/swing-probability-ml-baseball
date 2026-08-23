@@ -1,169 +1,152 @@
-# ⚾ Swing Probability in Baseball  
-**Author:** Danilo Arruda, PhD  
+# Swing probability in baseball
 
----
+This project explores pitch-level swing probability using MLB Statcast data.
+The committed notebook compares classifiers, calibrates a LightGBM model, applies
+it to a later season, and uses SHAP to explore predicted swing behavior.
 
-## 📘 Project Overview
-This project develops a **Swing Probability Model** in baseball using historical data from **three Major League Baseball (MLB) seasons**.  
-The model predicts the likelihood that a batter will swing at a given pitch, based on pitch characteristics, count context, and player information.  
-Beyond prediction, the project also explores **feature importance and interpretability** using SHAP values to understand what drives swing decisions.
+The reusable `swing_probability` package adds strict outcome labeling,
+schema-controlled feature preparation, train-fitted preprocessing, a lightweight
+probability baseline, and validated evaluation metrics.
 
----
+## Important result context
 
-## 🧠 Motivation
-Understanding swing behavior is valuable for:
-- **Teams and coaches**, to tailor pitching strategies and player matchups.  
-- **Analysts and scouts**, to identify players with disciplined or aggressive swing tendencies.  
-- **Sports scientists**, to study decision-making and motor behavior under time constraints.
+The notebook is a historical executed analysis, not a self-contained benchmark:
 
----
-## 📂 Table of Contents
-- [⚾ Swing Probability in Baseball](#-swing-probability-in-baseball)
-  - [📘 Project Overview](#-project-overview)
-  - [🧠 Motivation](#-motivation)
-  - [📂 Table of Contents](#-table-of-contents)
-  - [⚙️ Project and Data Description](#️-project-and-data-description)
-  - [🧹 Data Preparation](#-data-preparation)
-  - [🤖 Modeling](#-modeling)
-  - [🔧 Model Calibration](#-model-calibration)
-  - [📊 Model Diagnostics](#-model-diagnostics)
-  - [🧩 Predicting Swing Probability for Year 3](#-predicting-swing-probability-for-year-3)
-  - [🔍 Feature Exploration](#-feature-exploration)
-    - [SHAP Beeswarm Plot](#shap-beeswarm-plot)
-    - [SHAP Dependence Plots](#shap-dependence-plots)
-  - [▶️ How to Run the Notebook](#️-how-to-run-the-notebook)
-  - [📦 Dependencies](#-dependencies)
-  - [👨‍🔬 Author](#-author)
-  - [🏁 Summary](#-summary)
+- It fetched 2022, 2023, and part of 2024 from the live Statcast service. No raw
+  dataset or trained model is committed.
+- Its stored training table contained 1,426,485 pitches before complete-case
+  deletion. Re-fetching later can produce different rows.
+- The stored tuned LightGBM result reports 0.8503 random-holdout accuracy and the
+  calibrated result reports a 0.1059 Brier score.
+- The notebook’s original target omitted observed bunt swings (`foul_bunt`,
+  `missed_bunt`, and `bunt_foul_tip`). Its cached model outputs therefore reflect
+  those events incorrectly labeled as takes and should not be treated as current
+  validated results.
+- Dummy variables were created before the random split, and batter/pitcher IDs
+  were treated as continuous numbers. The package defaults to train-fitted
+  transformations and excludes player IDs unless explicitly requested.
 
----
+Use a future season or another time-based holdout for the strongest estimate of
+deployment performance. Random pitch-level splitting places the same players and
+nearby games in both sets and answers an easier interpolation question.
 
-## ⚙️ Project and Data Description
-The dataset is retrieved using the **`pybaseball`** package and includes pitch-level information from three MLB seasons:
-- 2022 season (April–October)
-- 2023 season (March–October)
-- 2024 season (March–June)
+## Outcome taxonomy
 
-Each pitch includes detailed features such as:
-- **Pitch characteristics**: type, velocity, spin rate, spin axis, and release position.  
-- **Pitch trajectory**: movement (pfx_x, pfx_z), plate location (plate_x, plate_z), and strike zone metrics (sz_top, sz_bot).  
-- **Game context**: balls, strikes, outs, inning, and score.  
-- **Player information**: batter, pitcher, handedness (stand and p_throws).
+`swing_probability.labels` explicitly separates swings from takes. Every pitch
+description printed by the committed notebook is covered. Unknown or missing
+descriptions raise an error instead of silently becoming “no swing,” making
+upstream Statcast vocabulary changes visible.
 
-The **target variable** is a binary indicator representing whether the batter **swung (1)** or **did not swing (0)**.
+Observed swing outcomes include:
 
----
+- balls put into play;
+- swinging strikes and blocked swinging strikes;
+- fouls and foul tips;
+- foul bunts, missed bunts, and bunt foul tips.
 
-## 🧹 Data Preparation
-Key preprocessing steps:
-- Data fetched from Statcast via `pybaseball.statcast()`.
-- Selection of relevant features for swing behavior.
-- Handling missing values (rows with few NaNs dropped).
-- Creation of the binary target variable (`swing`).
-- Conversion of categorical features into dummy variables for modeling.
+## Install
 
----
+Core preparation, testing, and the lightweight baseline require Python 3.10 or
+newer:
 
-## 🤖 Modeling
-Four classification models were initially trained and compared:
-- **LightGBM**
-- **Gradient Boosting**
-- **Decision Tree**
-- **Random Forest**
+```bash
+python -m pip install -e .
+```
 
-LightGBM achieved the best performance (≈ **85% accuracy**) and was selected for further optimization using **Bayesian hyperparameter tuning** via `skopt.BayesSearchCV`.
+Install the full notebook stack only when reproducing downloads, LightGBM,
+Bayesian search, plots, or SHAP:
 
----
+```bash
+python -m pip install -r requirements.txt
+```
 
-## 🔧 Model Calibration
-Since the final goal is to predict **probabilities**, model calibration was performed using **isotonic regression** with cross-validation (`cv=20`) to improve probability reliability.  
-The calibrated model was then used to evaluate accuracy and Brier score.
+The full analysis stack is intentionally optional because several operations are
+large or slow.
 
-**Performance summary:**
-- Accuracy: ~0.85  
-- Brier Score: ~0.106  
-- ROC-AUC: High discrimination between swing/no-swing classes.
+## Package example
 
----
+```python
+from swing_probability import (
+    evaluate_probabilities,
+    make_baseline_pipeline,
+    prepare_pitch_data,
+)
 
-## 📊 Model Diagnostics
-- **Confusion Matrix** and **Classification Report** confirmed balanced accuracy between classes.  
-- **ROC Curve** showed strong separability between swing outcomes.  
-- **Calibration Curve** verified that predicted probabilities align closely with observed outcomes.
+# Train and evaluation frames should come from different time periods.
+X_train, y_train = prepare_pitch_data(training_pitches)
+X_future, y_future = prepare_pitch_data(future_pitches)
 
----
+model = make_baseline_pipeline()
+model.fit(X_train, y_train)
+probabilities = model.predict_proba(X_future)[:, 1]
+print(evaluate_probabilities(y_future, probabilities))
+```
 
-## 🧩 Predicting Swing Probability for Year 3
-The trained and calibrated LightGBM model was applied to **2024 (Year 3)** data to predict swing probabilities.  
-Predictions correctly identified actual swing decisions **~80% of the time**, consistent with training performance.
+The pipeline learns numeric imputation, scaling, and categorical vocabularies
+from training data only. Unseen pitch categories are handled during prediction.
+Set `include_player_ids=True` in both preparation and pipeline construction only
+when high-cardinality player identity is genuinely part of the estimand; doing so
+can greatly increase memory use and complicate predictions for unseen players.
 
-A threshold-based evaluation (0.5 cutoff) illustrated how often model predictions matched real outcomes.
+## Middle-middle pitches
 
----
+```python
+from swing_probability import middle_middle_pitches
 
-## 🔍 Feature Exploration
-To interpret the model, **SHAP (SHapley Additive exPlanations)** was used.
+subset = middle_middle_pitches(season_frame)
+```
 
-### SHAP Beeswarm Plot
-- **Strikes:** More strikes increase swing probability.  
-- **Release speed:** Slower pitches slightly increase swing tendency.  
-- **Strike zone top/bottom (sz_top, sz_bot):** Influence batter’s decision boundaries.  
-- **Pitch type (e.g., sinkers)** tends to reduce swing probability.
+This helper removes rows missing plate/zone geometry, calculates each pitch’s
+strike-zone center, and applies explicit horizontal and vertical half-widths.
 
-### SHAP Dependence Plots
-- **Strikes × Balls:** Swing probability increases sharply at two strikes, moderated by the number of balls.  
-- **Release speed × Plate height:** Relationship is nonlinear (U-shaped); mid-range velocities increase swing likelihood.
+## Tests and bounded validation
 
-These insights can guide **coaching strategies**, highlighting how pitch type, speed, and count context jointly shape swing behavior.
+```bash
+python -m unittest discover -s tests -v
+```
 
----
+The suite uses a small synthetic dataset. It does not query Statcast, train
+LightGBM, run Bayesian optimization, perform 20-fold isotonic calibration, or
+compute SHAP values.
 
-## ▶️ How to Run the Notebook
-1. Clone this repository:
-   ```bash
-   git clone https://https://github.com/daniloarruda13/swing-probability-ml-baseball
-   cd swing-probability-baseball
-   ```
-2. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. Run Jupyter Notebook:
-   ```bash
-   jupyter notebook
-   ```
-4. Open and execute the notebook:
-   ```
-   swing_probability.ipynb
-   ```
+## Notebook
 
----
+To inspect or deliberately reproduce the historical workflow:
 
-## 📦 Dependencies
-Key Python packages:
-- `pandas`, `numpy`, `matplotlib`
-- `scikit-learn`
-- `lightgbm`
-- `shap`
-- `skopt`
-- `pybaseball`
-- `tqdm`
+```bash
+git clone https://github.com/daniloarruda13/swing-probability-ml-baseball.git
+cd swing-probability-ml-baseball
+jupyter notebook swing_probability_modeling.ipynb
+```
 
-Make sure your environment supports **Python ≥ 3.9**.
+Long-running sections are clearly identifiable in the notebook:
 
----
+- three Statcast downloads;
+- four-model comparison over more than one million pitches;
+- 20-iteration, five-fold Bayesian LightGBM search;
+- 20-fold isotonic calibration;
+- SHAP calculations and plots.
 
-## 👨‍🔬 Author
-**Danilo Arruda, PhD**  
-- Movement Scientist.  
-- Experienced in **data analysis**, **machine learning**, and **sports biomechanics**.  
+Cache raw downloads outside Git and record retrieval dates if reproducing the
+study. Review Statcast/MLB data terms before redistribution.
 
-📫 [LinkedIn](https://www.linkedin.com/in/danilo-arruda-phd-b0325b24a/) • [Google Scholar](https://scholar.google.com/citations?user=On_20uoAAAAJ&hl=en)
+## Repository structure
 
----
+- `swing_probability/labels.py`: strict swing/take definitions.
+- `swing_probability/features.py`: stable schema and pitch subsets.
+- `swing_probability/modeling.py`: preprocessing baseline and metrics.
+- `tests/`: offline unit, model-smoke, and repository tests.
+- `swing_probability_modeling.ipynb`: historical exploratory analysis.
+- `pyproject.toml`: core and optional analysis dependencies.
 
-## 🏁 Summary
-This notebook demonstrates a **data-driven approach to understanding swing behavior** in baseball using machine learning.  
-By combining model calibration, probabilistic interpretation, and explainable AI, it provides actionable insights that can inform both **coaching decisions** and **player development** strategies.
+## Interpretation
 
----
+This is an exploratory modeling project, not a production decision system.
+Feature importance and SHAP values describe model behavior, not causal effects.
+Validate calibration and discrimination on a genuinely later season before using
+predictions for scouting or in-game decisions.
+
+## License
+
+No software or data license is currently declared. Copyright remains with the
+author; obtain permission before reuse beyond applicable legal rights.
